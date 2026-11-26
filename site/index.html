@@ -44,10 +44,11 @@
     <div class="kpi-text">
       <p class="tag fin">Financial KPI</p>
       <h2>Average federal payout per disaster</h2>
-      <p class="formula">Total payout for a disaster type ÷ number of disasters of that type</p>
+      <p class="formula">Total payout for a disaster type ÷ number of disasters of that type with a payout record</p>
       <p class="takeaway" id="t-fin"></p>
       <p class="sowhat"><strong>For insurers:</strong> types that are both costly per event and frequent create the biggest exposure. Price them first.</p>
       <label class="toggle"><input type="checkbox" id="o-hm"> Include hazard mitigation grants (HMGP)</label>
+      <p class="note" id="n-fin"></p>
     </div>
     <div class="chart" id="c-fin" role="img" aria-label="Average payout per disaster type"></div>
   </section>
@@ -106,7 +107,7 @@
         <p>FEMA's open data API: <em>DisasterDeclarationsSummaries</em> (one row per declared county, reduced to one row per disaster) and <em>FemaWebDisasterSummaries</em> (federal money per disaster). A GitHub Action re-downloads both every week, so the numbers stay current. <span id="meta-line"></span></p>
         <h3>Definitions</h3>
         <ul>
-          <li><strong>Payout</strong> = Individuals &amp; Households Program approvals + Public Assistance obligations (+ hazard mitigation if ticked). Public Assistance is split into emergency work (categories A–B) and permanent work. Disasters with no payout record count as $0.</li>
+          <li><strong>Payout</strong> = Individuals &amp; Households Program approvals + Public Assistance obligations (+ hazard mitigation if ticked). Public Assistance is split into emergency work (categories A–B) and permanent work. Only disasters with a FEMA payout record are averaged; older disasters have none, and counting them as $0 would understate costs.</li>
           <li><strong>Household aid</strong> = the Individual Assistance or Individuals &amp; Households program was declared for at least one area of the disaster.</li>
           <li><strong>Declaration lag</strong> leaves out disasters with no start date or declared before the incident began (e.g. emergencies declared ahead of a hurricane).</li>
           <li><strong>PDLS</strong> compares every state and territory in the current filter.</li>

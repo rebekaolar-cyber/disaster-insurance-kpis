@@ -44,12 +44,16 @@
   // Financial KPI: average federal payout per disaster, by incident type.
   // Public Assistance (pa) already contains emergency work (Category A-B, cab),
   // so the channels are IHP + PA emergency + PA permanent/other (+ HMGP).
-  // Disasters without a payout record count as zero, as in the KPI formula
-  // (total payout for a type / number of disasters of that type).
+  // Only disasters with a FEMA payout record are averaged: older disasters
+  // have no record at all, and counting them as $0 would understate costs.
+  const hasPayout = (r) => r.ihp != null || r.pa != null || r.hm != null;
+
   function payoutByType(rows, opts = {}) {
     const includeHm = !!opts.includeHm;
     const out = [];
-    for (const [type, list] of groupBy(rows, "i")) {
+    for (const [type, all] of groupBy(rows, "i")) {
+      const list = all.filter(hasPayout);
+      if (!list.length) continue;
       let ihp = 0, paEm = 0, paOther = 0, hm = 0;
       for (const r of list) {
         const pa = num(r.pa);
@@ -62,13 +66,19 @@
       const n = list.length;
       const total = ihp + paEm + paOther + (includeHm ? hm : 0);
       out.push({
-        type, n,
+        type, n, declared: all.length,
         avgIhp: ihp / n, avgPaEmergency: paEm / n, avgPaOther: paOther / n,
         avgHm: includeHm ? hm / n : 0,
         avgTotal: total / n, total,
       });
     }
     return out.sort((a, b) => b.avgTotal - a.avgTotal);
+  }
+
+  function payoutCoverage(rows) {
+    const withRec = rows.filter(hasPayout);
+    const first = withRec.length ? Math.min(...withRec.map((r) => r.year)) : null;
+    return { n: rows.length, withRecord: withRec.length, firstYear: first };
   }
 
   function median(xs) {
@@ -158,7 +168,7 @@
   }
 
   return {
-    decode, filterRows, payoutByType, lagByType, lagTier, iaRateByType,
+    decode, filterRows, payoutByType, payoutCoverage, lagByType, lagTier, iaRateByType,
     iaOverall, iaTier, pdls, pdlsTier, median, money,
   };
 });

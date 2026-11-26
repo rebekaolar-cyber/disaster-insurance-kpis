@@ -6,7 +6,7 @@ An interactive KPI dashboard on every US federal disaster declaration since 1953
 
 | KPI | Question | Formula |
 |---|---|---|
-| **Financial** | Which disaster types cost the most per event? | Total federal payout for a type ÷ number of disasters of that type |
+| **Financial** | Which disaster types cost the most per event? | Total federal payout for a type ÷ disasters of that type with a payout record |
 | **Internal process** | How long until FEMA declares a disaster? | Declaration date − incident start date, averaged (or median) per type |
 | **Customer** | Where are households left needing federal aid? | Disasters with Individual Assistance / IHP activated ÷ all disasters of that type |
 | **Learning & growth** | Which states have the richest history to price risk from? | PDLS = w × frequency score + (1 − w) × hazard-diversity score (w = 0.6 by default, adjustable) |
@@ -26,7 +26,7 @@ OpenFEMA API ──► scripts/build_data.py ──► site/data/disasters.json 
 
 ### Definitions and choices
 
-- **Payout** = Individuals & Households Program approvals + Public Assistance obligations (hazard mitigation grants optional). Public Assistance is shown split into emergency work (categories A–B) and permanent work, so the stacked bars add up to the total. Disasters without a payout record count as $0, as the KPI formula divides by all disasters of a type.
+- **Payout** = Individuals & Households Program approvals + Public Assistance obligations (hazard mitigation grants optional). Public Assistance is shown split into emergency work (categories A–B) and permanent work, so the stacked bars add up to the total. Only disasters with a FEMA payout record are averaged: payout records do not reach back to 1953, and counting older disasters as $0 would understate costs. The page states how many disasters the average covers.
 - **Household aid** counts a disaster if the IA program (older disasters) or the IHP (newer disasters) was declared for at least one area.
 - **Declaration lag** leaves out disasters without a start date or declared before the incident began (for example emergencies declared ahead of a hurricane's landfall). The page shows how many were left out.
 - **Small samples:** types with fewer than 10 disasters can be hidden in the customer chart, so a 6-for-6 type doesn't top the ranking.

@@ -70,7 +70,7 @@ function drawFinancial(rows) {
   }));
   traces.push({
     type: "scatter", mode: "text", y, x: data.map((d) => d.avgTotal), showlegend: false, hoverinfo: "skip",
-    text: data.map((d) => `  ${KPI.money(d.avgTotal)} · n=${d.n}`), textposition: "middle right",
+    text: data.map((d) => `  ${KPI.money(d.avgTotal)} · n=${fmtInt(d.n)}`), textposition: "middle right",
     textfont: { size: 11, color: C.muted },
   });
   const max = Math.max(1, ...data.map((d) => d.avgTotal));
@@ -82,11 +82,15 @@ function drawFinancial(rows) {
     margin: { l: 10, r: 20, t: 10, b: 90 },
   }), CONFIG);
 
-  const all = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n > 0);
-  if (!all.length) return ($("t-fin").textContent = "No disasters match these filters.");
+  const all = KPI.payoutByType(rows, { includeHm: state.includeHm });
+  const cov = KPI.payoutCoverage(rows);
+  $("n-fin").textContent = cov.withRecord
+    ? `Averaged over the ${fmtInt(cov.withRecord)} of ${fmtInt(cov.n)} disasters in this filter that have a FEMA payout record (records start in ${cov.firstYear}).`
+    : "";
+  if (!all.length) return ($("t-fin").textContent = "No disasters with payout records match these filters.");
   const top = all[0];
   const common = [...all].sort((a, b) => b.n - a.n)[0];
-  $("t-fin").innerHTML = `<b>${esc(top.type)}</b> is the costliest per event: <b>${KPI.money(top.avgTotal)}</b> per disaster across ${fmtInt(top.n)} declarations. ` +
+  $("t-fin").innerHTML = `<b>${esc(top.type)}</b> is the costliest per event: <b>${KPI.money(top.avgTotal)}</b> per disaster across ${fmtInt(top.n)} disasters. ` +
     (common.type !== top.type ? `<b>${esc(common.type)}</b> is the most frequent (${fmtInt(common.n)}) at ${KPI.money(common.avgTotal)} each.` : "It is also the most frequent.");
 }
 
