@@ -49,7 +49,7 @@ node --test tests/*.test.js
 
 This began as a four-person University of Twente group project (Business Intelligence & Databases, BSc Business Information Technology): a normalised SQLite database, a balanced scorecard with these four KPIs, a Tableau dashboard and data mining in Orange, on a fixed data extract.
 
-I rebuilt it as an open, self-updating dashboard: a tested Python pipeline from FEMA's live API, the KPI calculations in tested JavaScript, and an interactive page anyone can open. The rebuild also fixed a double count: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already contains it. It adds filters, a median option, small-sample hiding and a slider to test the PDLS weighting.
+I rebuilt it as an open, self-updating dashboard: a tested Python pipeline from FEMA's live API, the KPI calculations in tested JavaScript, and an interactive page anyone can open. The rebuild also fixed a double count: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already contains it. On the November 2026 data that overstated total payouts by about 48%, and by 94% for biological disasters. It adds filters, a median option, small-sample hiding and a slider to test the PDLS weighting.
 
 ## Credits
 

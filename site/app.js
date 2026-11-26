@@ -53,7 +53,8 @@ function current() {
 // ---------- charts ----------
 
 function drawFinancial(rows) {
-  const data = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n > 0).slice(0, 14).reverse();
+  const minN = state.minN ? 10 : 1;
+  const data = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n >= minN).slice(0, 14).reverse();
   const y = data.map((d) => d.type);
   const series = [
     ["avgIhp", "Households (IHP)", C.ihp],
@@ -82,7 +83,7 @@ function drawFinancial(rows) {
     margin: { l: 10, r: 20, t: 10, b: 90 },
   }), CONFIG);
 
-  const all = KPI.payoutByType(rows, { includeHm: state.includeHm });
+  const all = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n >= minN);
   const cov = KPI.payoutCoverage(rows);
   $("n-fin").textContent = cov.withRecord
     ? `Averaged over the ${fmtInt(cov.withRecord)} of ${fmtInt(cov.n)} disasters in this filter that have a FEMA payout record (records start in ${cov.firstYear}).`
@@ -96,7 +97,8 @@ function drawFinancial(rows) {
 
 function drawProcess(rows) {
   const { rows: data, excluded } = KPI.lagByType(rows, state.stat);
-  const shown = data.filter((d) => d.n >= 3).slice(0, 18).reverse();
+  const minN = state.minN ? 10 : 3;
+  const shown = data.filter((d) => d.n >= minN).slice(0, 18).reverse();
   Plotly.react("c-proc", [{
     type: "bar", orientation: "h", y: shown.map((d) => d.type), x: shown.map((d) => d.weeks),
     marker: { color: shown.map((d) => dim(d.type, C[KPI.lagTier(d.weeks)])) },
@@ -115,8 +117,8 @@ function drawProcess(rows) {
     ],
   }), CONFIG);
 
-  $("n-proc").textContent = `Types with fewer than 3 dated disasters are hidden. ${fmtInt(excluded)} disasters left out (no start date, or declared before the incident began).`;
-  const ranked = data.filter((d) => d.n >= 3);
+  $("n-proc").textContent = `Types with fewer than ${minN} dated disasters are hidden (one old eruption can swing an average). ${fmtInt(excluded)} disasters left out (no start date, or declared before the incident began).`;
+  const ranked = data.filter((d) => d.n >= minN);
   if (!ranked.length) return ($("t-proc").textContent = "Not enough dated disasters for these filters.");
   const slow = ranked[0], fast = ranked[ranked.length - 1];
   const nSlow = ranked.filter((d) => d.weeks > 6).length;
@@ -186,8 +188,8 @@ function drawLearning(rows) {
 }
 
 function drawCards(rows) {
-  const pay = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n > 0);
-  const lag = KPI.lagByType(rows, state.stat).rows.filter((d) => d.n >= 3);
+  const pay = KPI.payoutByType(rows, { includeHm: state.includeHm }).filter((d) => d.n >= (state.minN ? 10 : 1));
+  const lag = KPI.lagByType(rows, state.stat).rows.filter((d) => d.n >= (state.minN ? 10 : 3));
   const ia = KPI.iaOverall(rows);
   const pd = KPI.pdls(rows, state.w);
   const cards = [

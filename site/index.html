@@ -73,7 +73,7 @@
       <p class="formula">Disasters where FEMA activated aid to individual households ÷ all disasters of that type</p>
       <p class="takeaway" id="t-cust"></p>
       <p class="sowhat"><strong>For insurers:</strong> a high rate signals that people were left without enough cover. These are the gaps a new product could fill.</p>
-      <label class="toggle"><input type="checkbox" id="o-minn" checked> Hide types with fewer than 10 disasters</label>
+      <label class="toggle"><input type="checkbox" id="o-minn" checked> Hide types with fewer than 10 disasters (in all three type charts)</label>
     </div>
     <div class="chart split">
       <div id="c-donut" role="img" aria-label="Share of disasters with household aid"></div>
@@ -116,7 +116,7 @@
       <div>
         <h3>Origin and what changed</h3>
         <p>This started as a four-person University of Twente project (Business Intelligence &amp; Databases, Business IT), built in SQLite, Tableau and Orange on a fixed data extract. I rebuilt it as an open, interactive dashboard: a Python pipeline that pulls FEMA's live API, tested KPI code in JavaScript, and this page.</p>
-        <p>Rebuilding it surfaced one fix: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already includes it, so those disaster types looked more expensive than they were. Here the channels add up to the total.</p>
+        <p>Rebuilding it surfaced one fix: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already includes it. On today's data that overstates total payouts by about 48% (nearly double for biological disasters). Here the channels add up to the total.</p>
         <p>New in the rebuild: filters by period, declaration type and state, a median option for declaration lag, small-sample hiding, and a slider to test the PDLS weighting instead of fixing it at 0.6.</p>
       </div>
     </div>
