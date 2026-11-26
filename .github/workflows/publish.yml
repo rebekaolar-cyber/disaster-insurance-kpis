@@ -1,0 +1,66 @@
+name: Refresh FEMA data and publish
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"   # every Monday, 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Tests
+        run: |
+          pip install pytest
+          pytest -q tests
+          node --test tests/*.test.js
+
+      - name: Download FEMA data and build the dashboard file
+        run: python scripts/build_data.py
+
+      - name: Save refreshed data to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/data/disasters.json
+          if git diff --cached --quiet; then
+            echo "Data unchanged."
+          else
+            git commit -m "Refresh FEMA data"
+            git push
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

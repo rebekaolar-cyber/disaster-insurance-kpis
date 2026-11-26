@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where disasters outrun insurance · FEMA KPI dashboard</title>
+<meta name="description" content="Interactive KPI dashboard on 70 years of FEMA disaster declarations and federal aid: payouts, declaration speed, household-aid gaps and state risk-learning scores.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2314213d%22/%3E%3Crect x=%227%22 y=%2216%22 width=%224%22 height=%229%22 fill=%22%23e0a526%22/%3E%3Crect x=%2214%22 y=%2210%22 width=%224%22 height=%2215%22 fill=%22%23c8553d%22/%3E%3Crect x=%2221%22 y=%2213%22 width=%224%22 height=%2212%22 fill=%22%233a9d5d%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="vendor/plotly.min.js" defer></script>
+<script src="kpis.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">FEMA open data · <span id="span-years">US disaster declarations</span></p>
+    <h1>Where disasters outrun insurance</h1>
+    <p class="lede">Four KPIs on every US federal disaster declaration: what each type of disaster costs, how fast FEMA declares it, where households are left needing federal aid, and which states give insurers the most history to learn from. Change the filters and every chart and finding updates.</p>
+    <div class="stats" id="stats"></div>
+  </div>
+</header>
+
+<nav class="filters" aria-label="Filters">
+  <div class="wrap filters-row">
+    <label>From <select id="f-from"></select></label>
+    <label>To <select id="f-to"></select></label>
+    <div class="seg" role="group" aria-label="Declaration type" id="f-type">
+      <button data-v="all" class="on">All declarations</button>
+      <button data-v="DR">Major disasters</button>
+      <button data-v="EM">Emergencies</button>
+      <button data-v="FM">Fire management</button>
+    </div>
+    <label>State <select id="f-state"><option value="">All states</option></select></label>
+    <button class="link" id="f-reset">Reset</button>
+    <span class="chip" id="sel-chip" hidden></span>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section class="cards" id="cards" aria-label="KPI summary"></section>
+
+  <section class="kpi" id="financial">
+    <div class="kpi-text">
+      <p class="tag fin">Financial KPI</p>
+      <h2>Average federal payout per disaster</h2>
+      <p class="formula">Total payout for a disaster type ÷ number of disasters of that type</p>
+      <p class="takeaway" id="t-fin"></p>
+      <p class="sowhat"><strong>For insurers:</strong> types that are both costly per event and frequent create the biggest exposure. Price them first.</p>
+      <label class="toggle"><input type="checkbox" id="o-hm"> Include hazard mitigation grants (HMGP)</label>
+    </div>
+    <div class="chart" id="c-fin" role="img" aria-label="Average payout per disaster type"></div>
+  </section>
+
+  <section class="kpi" id="process">
+    <div class="kpi-text">
+      <p class="tag proc">Internal process KPI</p>
+      <h2>Weeks from incident to declaration</h2>
+      <p class="formula">Declaration date − incident start date, averaged per disaster type</p>
+      <p class="takeaway" id="t-proc"></p>
+      <p class="sowhat"><strong>For insurers:</strong> slow-declared types leave time to assess damage; fast ones need claims teams ready on day one.</p>
+      <div class="seg small" id="o-stat"><button data-v="mean" class="on">Average</button><button data-v="median">Median</button></div>
+      <p class="note" id="n-proc"></p>
+    </div>
+    <div class="chart" id="c-proc" role="img" aria-label="Weeks from incident to declaration per disaster type"></div>
+  </section>
+
+  <section class="kpi" id="customer">
+    <div class="kpi-text">
+      <p class="tag cust">Customer KPI</p>
+      <h2>Household aid activation rate</h2>
+      <p class="formula">Disasters where FEMA activated aid to individual households ÷ all disasters of that type</p>
+      <p class="takeaway" id="t-cust"></p>
+      <p class="sowhat"><strong>For insurers:</strong> a high rate signals that people were left without enough cover. These are the gaps a new product could fill.</p>
+      <label class="toggle"><input type="checkbox" id="o-minn" checked> Hide types with fewer than 10 disasters</label>
+    </div>
+    <div class="chart split">
+      <div id="c-donut" role="img" aria-label="Share of disasters with household aid"></div>
+      <div id="c-cust" role="img" aria-label="Household aid activation rate per disaster type"></div>
+    </div>
+  </section>
+
+  <section class="kpi" id="learning">
+    <div class="kpi-text">
+      <p class="tag learn">Learning &amp; growth KPI</p>
+      <h2>Predictive Disaster Learning Score</h2>
+      <p class="formula">PDLS = <span id="w-f">0.6</span> × frequency score + <span id="w-d">0.4</span> × hazard-diversity score, each scaled 0–1 against the top state</p>
+      <p class="takeaway" id="t-learn"></p>
+      <p class="sowhat"><strong>For insurers:</strong> high-scoring states have enough varied history to price risk reliably; low-scoring ones need a surcharge for uncertainty.</p>
+      <label class="slider">Weight on frequency <input type="range" id="o-w" min="0" max="1" step="0.05" value="0.6"> <output id="o-w-out">0.60</output></label>
+      <ol class="top" id="top-states"></ol>
+    </div>
+    <div class="chart" id="c-map" role="img" aria-label="Map of PDLS by state"></div>
+  </section>
+
+  <section class="recs" id="recs">
+    <h2>Recommendations for insurers</h2>
+    <div class="rec-grid" id="rec-grid"></div>
+  </section>
+
+  <section class="method" id="method">
+    <h2>How this was built</h2>
+    <div class="method-grid">
+      <div>
+        <h3>Data</h3>
+        <p>FEMA's open data API: <em>DisasterDeclarationsSummaries</em> (one row per declared county, reduced to one row per disaster) and <em>FemaWebDisasterSummaries</em> (federal money per disaster). A GitHub Action re-downloads both every week, so the numbers stay current. <span id="meta-line"></span></p>
+        <h3>Definitions</h3>
+        <ul>
+          <li><strong>Payout</strong> = Individuals &amp; Households Program approvals + Public Assistance obligations (+ hazard mitigation if ticked). Public Assistance is split into emergency work (categories A–B) and permanent work. Disasters with no payout record count as $0.</li>
+          <li><strong>Household aid</strong> = the Individual Assistance or Individuals &amp; Households program was declared for at least one area of the disaster.</li>
+          <li><strong>Declaration lag</strong> leaves out disasters with no start date or declared before the incident began (e.g. emergencies declared ahead of a hurricane).</li>
+          <li><strong>PDLS</strong> compares every state and territory in the current filter.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Origin and what changed</h3>
+        <p>This started as a four-person University of Twente project (Business Intelligence &amp; Databases, Business IT), built in SQLite, Tableau and Orange on a fixed data extract. I rebuilt it as an open, interactive dashboard: a Python pipeline that pulls FEMA's live API, tested KPI code in JavaScript, and this page.</p>
+        <p>Rebuilding it surfaced one fix: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already includes it, so those disaster types looked more expensive than they were. Here the channels add up to the total.</p>
+        <p>New in the rebuild: filters by period, declaration type and state, a median option for declaration lag, small-sample hiding, and a slider to test the PDLS weighting instead of fixing it at 0.6.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Built by <a href="https://github.com/rebekaolar-cyber">Rebeka Olar</a> · <a href="https://github.com/rebekaolar-cyber/disaster-insurance-kpis">Source on GitHub</a> · Data: FEMA OpenFEMA (public domain). This product uses the FEMA OpenFEMA API, but is not endorsed by FEMA.</div>
+</footer>
+<div class="loading" id="loading">Loading FEMA data…</div>
+</body>
+</html>
