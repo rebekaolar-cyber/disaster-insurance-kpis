@@ -5,3 +5,4 @@ dbt_packages/
 *.duckdb
 *.duckdb.wal
 .user.yml
+js_kpis.json

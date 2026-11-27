@@ -7,9 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -18,6 +16,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to save refreshed data (main only)
     steps:
       - uses: actions/checkout@v4
 
@@ -30,17 +30,29 @@ jobs:
           node-version: "20"
 
       - name: Install
-        run: pip install pytest dbt-core==1.12.7 dbt-duckdb==1.11.1
+        run: pip install pytest dbt-core==1.12.7 dbt-duckdb==1.11.1 duckdb==2.0.1
 
       - name: Unit tests (Python pipeline + JavaScript KPI maths)
         run: |
           pytest -q tests
           node --test tests/*.test.js
 
-      - name: Download FEMA data, build the dashboard file, save raw data for dbt
-        run: python scripts/build_data.py --raw-dir dbt/raw
+      - name: dbt on the edge-case fixture (multi-area disasters, bad dates, odd flags)
+        working-directory: dbt
+        env:
+          DBT_PROFILES_DIR: .
+        run: |
+          python ../scripts/build_data.py --from-csv fixtures/declarations.csv fixtures/payouts.csv --raw-dir raw --out /tmp/fixture.json
+          node ../scripts/export_kpis.js /tmp/fixture.json /tmp/fixture_kpis.json
+          dbt build --vars '{dashboard_json: /tmp/fixture.json, js_kpis_json: /tmp/fixture_kpis.json}'
+          rm -f fema.duckdb
 
-      - name: dbt build (SQL models + data tests, incl. dashboard reconciliation)
+      - name: Download FEMA data, build the dashboard file, save raw data for dbt
+        run: |
+          python scripts/build_data.py --raw-dir dbt/raw
+          node scripts/export_kpis.js site/data/disasters.json dbt/js_kpis.json
+
+      - name: dbt build on the full data (models + tests; the dashboard must match dbt)
         working-directory: dbt
         env:
           DBT_PROFILES_DIR: .
@@ -60,6 +72,7 @@ jobs:
             echo "Data unchanged."
           else
             git commit -m "Refresh FEMA data"
+            git pull --rebase origin main
             git push
           fi
 
@@ -72,6 +85,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

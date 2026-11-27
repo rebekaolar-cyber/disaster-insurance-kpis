@@ -26,21 +26,27 @@ OpenFEMA API ──► scripts/build_data.py ──► site/data/disasters.json 
 
 ### The same KPIs in SQL (dbt)
 
-`dbt/` rebuilds the pipeline in SQL with [dbt](https://www.getdbt.com/) on DuckDB, from the raw FEMA rows the weekly run saves:
+`dbt/` rebuilds the pipeline in SQL with [dbt](https://www.getdbt.com/) on DuckDB. Its input is the raw FEMA rows that `build_data.py --raw-dir dbt/raw` saves during each run (not committed; run that step first):
 
 ```
 raw FEMA CSVs ─► staging (types, flags) ─► int_disasters (one row per disaster) ─► fct_disasters ─► 4 KPI models
 ```
 
 - **Models:** `stg_fema__declarations`, `stg_fema__payouts`, `int_disasters`, `fct_disasters`, `kpi_payout_by_type`, `kpi_declaration_lag_by_type`, `kpi_household_aid_by_type`, `kpi_pdls_by_state` (frequency weight is the dbt var `pdls_frequency_weight`).
-- **Tests:** uniqueness and not-null keys, accepted values, ranges, plus singular tests: payout channels must add up to the total (fails on the original double count), and `assert_dashboard_matches_dbt` checks that the SQL pipeline and the dashboard's Python pipeline agree disaster by disaster. Data quirks in FEMA's own records (emergency work above total Public Assistance, payouts for disasters missing from the declarations file) are reported as warnings.
+- **Tests:** uniqueness and not-null keys, accepted values and ranges, plus singular tests:
+  - `assert_payout_channels_add_up` fails if emergency work is ever added on top of Public Assistance (the original double count);
+  - `assert_dashboard_matches_dbt` checks that the SQL pipeline and the dashboard's Python pipeline agree on every field of every disaster;
+  - `assert_kpis_match_dashboard` checks every KPI value against the dashboard's own JavaScript (`scripts/export_kpis.js`).
+  Both pipelines use the same rules (for example, where FEMA's rows for one disaster disagree, the smallest value is kept). Quirks in FEMA's own records (emergency work above total Public Assistance, payouts for disasters missing from the declarations file, inconsistent rows) are logged as warnings and don't block publishing.
+- **Edge cases:** `dbt/fixtures/` holds a small hand-made extract (multi-area disasters, IHP-only aid, invalid dates, `NaN` amounts, `9008.7`-style numbers). CI runs the whole dbt build on it before the real data.
 - **Docs:** `dbt docs generate --static` is published at [/dbt/](https://rebekaolar-cyber.github.io/disaster-insurance-kpis/dbt/) with the lineage graph.
-- **Safety:** every branch runs the full build; only `main` is published, and only if every test passes.
+- **Safety:** every branch runs the full build; only `main` is published, and only when every blocking test passes. The `/dbt/` docs page exists only on the published site (it is generated in CI).
 
 Run it locally after `python scripts/build_data.py --raw-dir dbt/raw`:
 
 ```bash
-pip install dbt-core dbt-duckdb
+pip install dbt-core==1.12.7 dbt-duckdb==1.11.1
+node scripts/export_kpis.js site/data/disasters.json dbt/js_kpis.json
 cd dbt && DBT_PROFILES_DIR=. dbt build
 ```
 

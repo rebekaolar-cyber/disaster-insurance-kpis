@@ -1,6 +1,7 @@
 -- One row per disaster. A disaster's attributes repeat on every declared
--- area; household aid counts if any area had it; the incident start is the
--- earliest start reported for any area.
+-- area; where FEMA's rows disagree, the smallest value is kept (the same rule
+-- as the dashboard's Python pipeline). Household aid counts if any area had
+-- it; the incident start is the earliest start reported for any area.
 select
     disaster_number,
     min(state)                     as state,

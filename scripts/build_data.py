@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import sys
 import time
 import urllib.parse
@@ -90,49 +91,55 @@ def _flag(value) -> bool:
 
 
 def _day(value) -> str | None:
-    value = (value or "").strip()
-    return value[:10] if len(value) >= 10 else None
+    """YYYY-MM-DD from an ISO timestamp; None if missing or not a real date."""
+    value = (value or "").strip()[:10]
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+    except ValueError:
+        return None
 
 
 def _money(value) -> float | None:
     if value in (None, ""):
         return None
     try:
-        return round(float(value), 2)
+        v = float(value)
     except (TypeError, ValueError):
         return None
+    return round(v, 2) if math.isfinite(v) else None
 
 
 def disasters_from_declarations(rows: list[dict]) -> dict[int, dict]:
     """Collapse county-level declaration rows into one record per disaster.
 
-    A disaster counts as having activated individual assistance if any
-    declared area had the IA program (older disasters) or the
+    Same rules as the dbt model int_disasters, so the two pipelines agree:
+    state, declaration type, incident type, declaration date and incident
+    start are the smallest value over the disaster's areas; household aid
+    counts if any area had the IA program (older disasters) or the
     Individuals and Households program (newer disasters) declared.
     """
     out: dict[int, dict] = {}
+
+    def keep_min(rec: dict, key: str, value) -> None:
+        if value and (rec[key] is None or value < rec[key]):
+            rec[key] = value
+
     for r in rows:
         try:
             n = int(float(r["disasterNumber"]))
         except (KeyError, TypeError, ValueError):
             continue
-        rec = out.get(n)
-        ia = _flag(r.get("iaProgramDeclared")) or _flag(r.get("ihProgramDeclared"))
-        begin = _day(r.get("incidentBeginDate"))
-        if rec is None:
-            out[n] = {
-                "n": n,
-                "s": (r.get("state") or "").strip(),
-                "t": (r.get("declarationType") or "").strip(),
-                "i": (r.get("incidentType") or "").strip(),
-                "d": _day(r.get("declarationDate")),
-                "b": begin,
-                "ia": int(ia),
-            }
-        else:
-            rec["ia"] = int(rec["ia"] or ia)
-            if begin and (rec["b"] is None or begin < rec["b"]):
-                rec["b"] = begin
+        rec = out.setdefault(n, {"n": n, "s": None, "t": None, "i": None, "d": None, "b": None, "ia": 0})
+        keep_min(rec, "s", (r.get("state") or "").strip())
+        keep_min(rec, "t", (r.get("declarationType") or "").strip())
+        keep_min(rec, "i", (r.get("incidentType") or "").strip())
+        keep_min(rec, "d", _day(r.get("declarationDate")))
+        keep_min(rec, "b", _day(r.get("incidentBeginDate")))
+        if _flag(r.get("iaProgramDeclared")) or _flag(r.get("ihProgramDeclared")):
+            rec["ia"] = 1
+    for rec in out.values():
+        rec["s"] = rec["s"] or ""
+        rec["t"] = rec["t"] or ""
     return out
 
 
@@ -200,7 +207,7 @@ def main() -> int:
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    out.write_text(json.dumps(payload, separators=(",", ":"), allow_nan=False), encoding="utf-8")
     print(f"wrote {out} with {payload['meta']['disasters']} disasters", file=sys.stderr)
     return 0
 

@@ -119,7 +119,7 @@
         <p>Rebuilding it surfaced one fix: the original payout chart stacked emergency-work spending on top of total Public Assistance, which already includes it. On today's data that overstates total payouts by about 48% (nearly double for biological disasters). Here the channels add up to the total.</p>
         <p>New in the rebuild: filters by period, declaration type and state, a median option for declaration lag, small-sample hiding, and a slider to test the PDLS weighting instead of fixing it at 0.6.</p>
         <h3>The same KPIs in SQL (dbt)</h3>
-        <p>Every week the raw FEMA rows also run through a <a href="dbt/">dbt pipeline</a>: SQL models from raw data to one row per disaster to the four KPIs, with data tests. One test fails if emergency work is ever counted on top of Public Assistance again; another checks that the SQL pipeline and this page agree disaster by disaster. Nothing is published unless every test passes.</p>
+        <p>Every week the raw FEMA rows also run through a <a href="dbt/">dbt pipeline</a>: SQL models from raw data to one row per disaster to the four KPIs, with data tests. One test fails if emergency work is ever counted on top of Public Assistance again. Two more check that the SQL pipeline and this page agree: on every field of every disaster, and on every KPI value. The page is only republished when those blocking tests pass; known quirks in FEMA's own records are logged as warnings.</p>
       </div>
     </div>
   </section>

@@ -70,3 +70,21 @@ def test_raw_export_keeps_api_field_names(tmp_path):
     assert list(rows[0].keys()) == b.DECL_FIELDS
     assert len(rows) == len(DECL)
     assert rows[1]["iaProgramDeclared"] == "1"
+
+
+def test_invalid_dates_and_non_finite_money_are_dropped():
+    assert b._day("2020-02-30T00:00:00.000Z") is None
+    assert b._day("2020-02-28T00:00:00.000Z") == "2020-02-28"
+    assert b._money("nan") is None and b._money("inf") is None
+    assert b._money("12.345") == 12.35
+
+
+def test_attributes_use_the_smallest_value_like_dbt():
+    rows = [
+        {"disasterNumber": "20", "state": "TX", "declarationType": "DR", "declarationDate": "2020-05-02",
+         "incidentType": "Flood", "incidentBeginDate": "2020-04-10"},
+        {"disasterNumber": "20.0", "state": "AL", "declarationType": "DR", "declarationDate": "2020-05-01",
+         "incidentType": "Flood", "incidentBeginDate": "2020-04-12", "ihProgramDeclared": "True"},
+    ]
+    d = b.disasters_from_declarations(rows)[20]
+    assert (d["s"], d["d"], d["b"], d["ia"]) == ("AL", "2020-05-01", "2020-04-10", 1)
