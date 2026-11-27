@@ -1,0 +1,7 @@
+fema_kpis:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: fema.duckdb
+      threads: 4

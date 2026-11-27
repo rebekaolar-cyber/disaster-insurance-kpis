@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: int_disasters
+    description: One row per disaster, collapsed from its declared areas. Disasters without a declaration date or incident type are left out, as in the dashboard.
+    columns:
+      - name: disaster_number
+        tests: [unique, not_null]
+      - name: state
+        tests: [not_null]
+      - name: incident_begin_date
+        description: Earliest incident start reported for any of the disaster's areas.
+      - name: household_aid_declared
+        description: True if any declared area had household aid (IA or IHP).

@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_fema__declarations
+    description: One row per declared area, with types fixed and the two household-aid flags (IA for older disasters, IHP for newer ones) merged into one.
+    columns:
+      - name: disaster_number
+        description: FEMA's number for the disaster; repeats once per declared area.
+        tests: [not_null]
+      - name: declaration_type
+        description: DR = major disaster, EM = emergency, FM = fire management.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['DR', 'EM', 'FM']
+              config:
+                severity: warn
+      - name: household_aid_declared
+        description: True if the IA or IHP program was declared for this area.
+
+  - name: stg_fema__payouts
+    description: Federal money per disaster. Public Assistance already contains emergency work (categories A–B) and permanent work (C–G).
+    columns:
+      - name: disaster_number
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_disasters')
+                field: disaster_number
+              config:
+                severity: warn

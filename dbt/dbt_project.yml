@@ -1,0 +1,24 @@
+name: fema_kpis
+version: "1.0.0"
+config-version: 2
+profile: fema_kpis
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target"]
+
+vars:
+  # Weight on disaster frequency in the Predictive Disaster Learning Score
+  # (the rest goes to hazard diversity). The course project used 0.6.
+  pdls_frequency_weight: 0.6
+
+models:
+  fema_kpis:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: fct_disasters
+    description: One row per disaster with its federal money and declaration timing. The base for all four KPIs.
+    columns:
+      - name: disaster_number
+        tests: [unique, not_null]
+      - name: has_payout_record
+        description: False for disasters with no FEMA payout record (records start in 1998).
+      - name: total_payout
+        description: IHP approvals + Public Assistance obligations. Emergency work is part of Public Assistance and is never added on top.
+      - name: pa_emergency_work
+        description: Public Assistance categories A–B, capped at total Public Assistance.
+      - name: declaration_lag_weeks
+        description: Weeks from incident start to FEMA's declaration; negative when declared ahead of the incident.
+
+  - name: kpi_payout_by_type
+    description: Financial KPI. Average federal payout per disaster type, over disasters with a payout record.
+    columns:
+      - name: incident_type
+        tests: [unique, not_null]
+      - name: avg_total_payout
+        tests:
+          - between:
+              arguments:
+                min_value: 0
+                max_value: 1e12
+
+  - name: kpi_declaration_lag_by_type
+    description: Internal-process KPI. Average and median weeks from incident start to declaration, by disaster type.
+    columns:
+      - name: incident_type
+        tests: [unique, not_null]
+      - name: speed_tier
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Fast', 'Moderate', 'Slow']
+
+  - name: kpi_household_aid_by_type
+    description: Customer KPI. Share of disasters where FEMA activated aid for individual households.
+    columns:
+      - name: incident_type
+        tests: [unique, not_null]
+      - name: household_aid_rate
+        tests:
+          - between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: kpi_pdls_by_state
+    description: Learning & growth KPI. Predictive Disaster Learning Score per state; the frequency weight is the dbt var pdls_frequency_weight (default 0.6).
+    columns:
+      - name: state
+        tests: [unique, not_null]
+      - name: pdls
+        tests:
+          - between:
+              arguments:
+                min_value: 0
+                max_value: 1

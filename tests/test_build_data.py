@@ -61,3 +61,12 @@ def test_payload_is_columnar_and_sorted():
     assert [r[0] for r in p["rows"]] == [10, 11]
     assert p["meta"]["disasters"] == 2
     assert p["meta"]["first"] == "2020-05-01" and p["meta"]["last"] == "2021-09-01"
+
+
+def test_raw_export_keeps_api_field_names(tmp_path):
+    out = tmp_path / "raw" / "declarations.csv"
+    b.write_raw(DECL, b.DECL_FIELDS, out)
+    rows = b.read_csv(str(out))
+    assert list(rows[0].keys()) == b.DECL_FIELDS
+    assert len(rows) == len(DECL)
+    assert rows[1]["iaProgramDeclared"] == "1"

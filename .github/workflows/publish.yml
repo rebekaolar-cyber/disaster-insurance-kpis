@@ -1,8 +1,7 @@
 name: Refresh FEMA data and publish
 
 on:
-  push:
-    branches: [main]
+  push:            # every branch is tested; only main is published
   schedule:
     - cron: "17 5 * * 1"   # every Monday, 05:17 UTC
   workflow_dispatch:
@@ -13,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -30,16 +29,29 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Tests
+      - name: Install
+        run: pip install pytest dbt-core==1.12.7 dbt-duckdb==1.11.1
+
+      - name: Unit tests (Python pipeline + JavaScript KPI maths)
         run: |
-          pip install pytest
           pytest -q tests
           node --test tests/*.test.js
 
-      - name: Download FEMA data and build the dashboard file
-        run: python scripts/build_data.py
+      - name: Download FEMA data, build the dashboard file, save raw data for dbt
+        run: python scripts/build_data.py --raw-dir dbt/raw
+
+      - name: dbt build (SQL models + data tests, incl. dashboard reconciliation)
+        working-directory: dbt
+        env:
+          DBT_PROFILES_DIR: .
+        run: |
+          dbt build
+          dbt docs generate --static
+          mkdir -p ../site/dbt
+          cp target/static_index.html ../site/dbt/index.html
 
       - name: Save refreshed data to the repo
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -52,10 +64,12 @@ jobs:
           fi
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
         with:
           path: site
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:

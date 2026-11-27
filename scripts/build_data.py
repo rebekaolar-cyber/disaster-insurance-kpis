@@ -68,6 +68,16 @@ def fetch_all(path: str, entity: str, fields: list[str]) -> list[dict]:
         skip += PAGE
 
 
+def write_raw(rows: list[dict], fields: list[str], path: Path) -> None:
+    """Save the downloaded rows untouched, for the dbt pipeline to read."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in fields})
+
+
 def read_csv(path: str) -> list[dict]:
     with open(path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
@@ -165,6 +175,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--from-csv", nargs=2, metavar=("DECLARATIONS", "SUMMARIES"))
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--raw-dir", help="also save the raw rows as CSV here (input for dbt)")
     args = ap.parse_args()
 
     if args.from_csv:
@@ -174,6 +185,10 @@ def main() -> int:
         decl = fetch_all("v2/DisasterDeclarationsSummaries", "DisasterDeclarationsSummaries", DECL_FIELDS)
         sums = fetch_all("v1/FemaWebDisasterSummaries", "FemaWebDisasterSummaries", SUM_FIELDS)
         source = "OpenFEMA API (fema.gov): DisasterDeclarationsSummaries v2 + FemaWebDisasterSummaries v1"
+
+    if args.raw_dir:
+        write_raw(decl, DECL_FIELDS, Path(args.raw_dir) / "declarations.csv")
+        write_raw(sums, SUM_FIELDS, Path(args.raw_dir) / "payouts.csv")
 
     disasters = disasters_from_declarations(decl)
     attach_payouts(disasters, sums)

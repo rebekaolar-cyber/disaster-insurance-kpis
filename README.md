@@ -24,6 +24,26 @@ OpenFEMA API ──► scripts/build_data.py ──► site/data/disasters.json 
 - **Refresh:** `.github/workflows/publish.yml` runs the tests, re-downloads both datasets every Monday, commits the new data file if it changed and redeploys GitHub Pages. It refuses to publish if the download looks broken (fewer than 3,000 disasters).
 - **No server, no build step:** the page is plain HTML, CSS and JavaScript. Plotly and the US map file are vendored in `site/vendor/` so the page does not depend on a CDN.
 
+### The same KPIs in SQL (dbt)
+
+`dbt/` rebuilds the pipeline in SQL with [dbt](https://www.getdbt.com/) on DuckDB, from the raw FEMA rows the weekly run saves:
+
+```
+raw FEMA CSVs ─► staging (types, flags) ─► int_disasters (one row per disaster) ─► fct_disasters ─► 4 KPI models
+```
+
+- **Models:** `stg_fema__declarations`, `stg_fema__payouts`, `int_disasters`, `fct_disasters`, `kpi_payout_by_type`, `kpi_declaration_lag_by_type`, `kpi_household_aid_by_type`, `kpi_pdls_by_state` (frequency weight is the dbt var `pdls_frequency_weight`).
+- **Tests:** uniqueness and not-null keys, accepted values, ranges, plus singular tests: payout channels must add up to the total (fails on the original double count), and `assert_dashboard_matches_dbt` checks that the SQL pipeline and the dashboard's Python pipeline agree disaster by disaster. Data quirks in FEMA's own records (emergency work above total Public Assistance, payouts for disasters missing from the declarations file) are reported as warnings.
+- **Docs:** `dbt docs generate --static` is published at [/dbt/](https://rebekaolar-cyber.github.io/disaster-insurance-kpis/dbt/) with the lineage graph.
+- **Safety:** every branch runs the full build; only `main` is published, and only if every test passes.
+
+Run it locally after `python scripts/build_data.py --raw-dir dbt/raw`:
+
+```bash
+pip install dbt-core dbt-duckdb
+cd dbt && DBT_PROFILES_DIR=. dbt build
+```
+
 ### Definitions and choices
 
 - **Payout** = Individuals & Households Program approvals + Public Assistance obligations (hazard mitigation grants optional). Public Assistance is shown split into emergency work (categories A–B) and permanent work, so the stacked bars add up to the total. Only disasters with a FEMA payout record are averaged: payout records do not reach back to 1953, and counting older disasters as $0 would understate costs. The page states how many disasters the average covers.

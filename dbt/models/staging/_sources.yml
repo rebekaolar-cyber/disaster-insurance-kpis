@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: fema
+    description: >
+      Raw OpenFEMA extracts saved by scripts/build_data.py --raw-dir raw
+      (DisasterDeclarationsSummaries v2 and FemaWebDisasterSummaries v1).
+      Read as text so that staging decides every type.
+    meta:
+      external_location: "read_csv('raw/{name}.csv', header = true, all_varchar = true)"
+    tables:
+      - name: declarations
+        description: One row per declared county or area of a disaster.
+      - name: payouts
+        description: Federal money per disaster (IHP approvals, Public Assistance and hazard mitigation obligations).
